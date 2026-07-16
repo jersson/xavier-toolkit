@@ -1,0 +1,4 @@
+tmp/
+docs/
+package-lock.json
+opencode.json

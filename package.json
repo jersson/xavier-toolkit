@@ -1,0 +1,43 @@
+{
+  "name": "@xavier/toolkit",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Second-brain toolkit — load documents, build knowledge, create a validated persona, and answer questions in your voice",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    ".claude-plugin/",
+    "skills/",
+    "lib/",
+    "plugin.mjs",
+    "cli.mjs",
+    "banner.txt",
+    "LICENSE"
+  ],
+  "bin": {
+    "xavier": "cli.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jersson/xavier-toolkit.git"
+  },
+  "keywords": [
+    "opencode",
+    "skill",
+    "second-brain",
+    "persona",
+    "knowledge-base",
+    "load-documents",
+    "build-knowledge",
+    "build-persona",
+    "validate-goals",
+    "ask-persona",
+    "execute-workflow",
+    "xavier-toolkit"
+  ]
+}

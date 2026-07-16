@@ -1,0 +1,13 @@
+{
+  "name": "xavier",
+  "owner": {
+    "name": "xavier"
+  },
+  "plugins": [
+    {
+      "name": "xavier",
+      "source": "./",
+      "description": "Second-brain toolkit — documents to validated persona"
+    }
+  ]
+}
