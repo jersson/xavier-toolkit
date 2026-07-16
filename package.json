@@ -1,5 +1,5 @@
 {
-  "name": "@xavier/toolkit",
+  "name": "@xavier-ai/toolkit",
   "version": "0.0.1",
   "type": "module",
   "description": "Second-brain toolkit — load documents, build knowledge, create a validated persona, and answer questions in your voice",

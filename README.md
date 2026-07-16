@@ -59,7 +59,7 @@ execute-workflow
 ## Installation
 
 ```bash
-npm install -g @xavier/toolkit
+npm install -g @xavier-ai/toolkit
 ```
 
 ### OpenCode
