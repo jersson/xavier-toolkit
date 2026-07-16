@@ -5,44 +5,60 @@ description: Autonomously run the full second-brain pipeline end-to-end — load
 
 # Execute Workflow
 
-Orchestrates the complete second-brain pipeline autonomously: from raw documents to a validated persona to an answered question, handling failures and retries without requiring the user to invoke each skill manually.
+Orchestrates the complete second-brain pipeline: from raw documents in `.xavier/raw/` to a validated persona in `.xavier/persona/` to an answered question. Handles failures and retries autonomously.
+
+## Directory structure
+
+```
+.xavier/
+/raw              → user drops source files here
+/normalized       → load-documents output
+/kb               → build-knowledge output (wiki/ + index/)
+/persona          → validated persona definition (final)
+/results/
+  ├── load/       → load-report.md
+  ├── kb/         → build-report.md
+  ├── .draft/
+  │   └── persona/ → persona-draft.md, persona-draft-report.md (temp)
+  ├── validation/ → validation-verdict.md, gap-report.md
+  └── run.log     → overall pipeline log
+```
 
 ## When this is triggered
 
 - User wants an end-to-end run: "build my second brain from these files and tell me X"
 - User wants to refresh and re-query after adding documents
-- Any request that implies the full chain (source docs → answer) rather than a single stage
+- Any request implying the full chain (source docs → answer)
 
 ## Inputs
 
-- Raw source files or a source directory (for `load-documents`)
-- The user's actual question/request (to be answered via `ask-persona` once the persona is validated)
-- Optional: existing knowledge base / persona state, if this is a re-run rather than a first run
+- Raw source files in `.xavier/raw/`
+- The user's question (answered via `ask-persona` after validation)
+- Optional: existing state for re-runs
 
 ## Process
 
-1. **`load-documents`** — full or incremental, based on whether this is a first run or refresh.
-2. **`build-knowledge`** — rebuild or incremental update, matching the mode above.
-3. **`build-persona`** — generate the draft persona from the current knowledge base.
+1. **`load-documents`** — full or incremental based on whether `.xavier/normalized/manifest.json` exists.
+2. **`build-knowledge`** — rebuild or incremental, matching the mode above.
+3. **`build-persona`** — generate draft from `.xavier/kb/`. Drafts written to `.xavier/results/.draft/persona/`.
 4. **`validate-goals`** — run the hard gate. Track attempt count starting at 1.
 5. **Branch on verdict**:
-   - **PASS** → proceed to step 6.
-   - **FAIL, attempt < 3** → read `gap-report.md`:
-     - For each **auto-resolvable** gap: re-run `load-documents` (targeted — e.g., web research or a request for specific missing document types) → `build-knowledge` (incremental) → `build-persona` (retry) → back to step 4, increment attempt count.
-     - For each **user-dependent** gap: pause execution, present the specific gap(s) to the user as direct questions, incorporate their answers into a supplementary document or directly into `build-persona`'s next run → back to step 4, increment attempt count.
-     - If gaps are mixed (both types), resolve auto-resolvable ones first, then prompt the user for the rest in the same pause.
-   - **FAIL, attempt = 3** → halt. Do not retry further. Report `gap-report.md` to the user in full, explain what's blocking validation, and stop. Do not run `ask-persona`.
-6. **`ask-persona`** — once validated, answer the user's original question (or run `--mode=summary` if that was the request).
+   - **PASS** → persona written to `.xavier/persona/persona.md`, proceed to step 6.
+   - **FAIL, attempt < 3** → read `.xavier/results/validation/gap-report.md`:
+     - Auto-resolvable gaps → re-run `load-documents` → `build-knowledge` → `build-persona` → back to step 4.
+     - User-dependent gaps → pause, ask user, incorporate answers → back to step 4.
+     - Mixed gaps → resolve auto-resolvable first, then prompt user.
+   - **FAIL, attempt = 3** → halt. Report gaps to user. Never run `ask-persona`.
+6. **`ask-persona`** — answer the user's original question.
 
 ## Output
 
-- Final answer to the user's original request (from `ask-persona`), or
-- A halt report with unresolved gaps (if validation failed 3 times)
-- A run log showing each stage's status, attempt count, and timestamps — useful for the user to see what happened without re-reading every intermediate skill's output
+- Answer to user's request, or halt report with unresolved gaps
+- `.xavier/results/run.log` — stage status, attempt count, timestamps
 
 ## Guardrails
 
-- Never skip `validate-goals`, regardless of how confident `build-persona`'s draft looks.
-- Never exceed 3 validation attempts — this is a hard cap to prevent infinite loops on an insufficient knowledge base.
-- Never let `ask-persona` run against an unvalidated persona under any branch of this workflow.
-- Always surface user-dependent gaps as explicit questions — never guess at what the user meant to save a retry attempt.
+- Never skip `validate-goals`
+- Never exceed 3 validation attempts
+- Never let `ask-persona` run against an unvalidated persona
+- Always surface user-dependent gaps as explicit questions

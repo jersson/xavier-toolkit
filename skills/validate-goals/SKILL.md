@@ -5,47 +5,47 @@ description: Hard gate that reviews a draft persona (from build-persona) and ver
 
 # Validate Goals
 
-Reviews the draft persona against the underlying knowledge base and determines whether it is accurate and sufficiently supported to be used for downstream interaction (`ask-persona`). This is a hard gate: no query against the persona is permitted until it passes.
+Reviews the draft persona against the knowledge base and determines whether it is accurate and sufficiently supported. This is a hard gate: no query against the persona is permitted until it passes.
 
 ## When this is triggered
 
 - Immediately after every `build-persona` run (including retries)
-- On demand, if the user wants to re-check an existing persona (e.g., after adding new documents)
+- On demand, if the user wants to re-check an existing persona
 
 ## Inputs
 
-- `persona-draft.md` and `persona-draft-report.md` from `build-persona`
-- `/wiki/` and `/index/` from `build-knowledge`
-- Attempt counter (tracked by `execute-workflow`; this skill must respect and report it, max 3 attempts)
+- `.xavier/results/.draft/persona/persona-draft.md` and `persona-draft-report.md`
+- `.xavier/kb/` — wiki and retrieval index
+- Attempt counter (tracked by `execute-workflow`, max 3)
 
 ## Pass/fail criteria
 
 A persona **passes** only if:
-1. Every claim in the "Goals & motivations" and "Identity" sections is traceable to at least one specific source document (no unsupported inference presented as fact)
-2. No section is marked "inferred" in `persona-draft-report.md` without corroborating evidence from at least two independent sources
-3. There is no direct contradiction between sections (e.g., stated goals conflicting with stated constraints)
-4. Coverage is sufficient: the persona addresses goals/motivations at a level of specificity useful for answering real user questions — not just generic statements
+1. Every claim in "Goals & motivations" and "Identity" is traceable to at least one source document
+2. No "inferred" section lacks corroborating evidence from at least two independent sources
+3. No direct contradictions between sections
+4. Sufficient specificity for answering real user questions
 
-A persona **fails** if any criterion above is not met. Every failure must be attributed to a specific section and a specific reason.
+A persona **fails** if any criterion is not met. Each failure attributed to a specific section and reason.
 
 ## Process
 
-1. **Cross-check claims** — for each claim in `persona-draft.md`, verify it against the cited source in `/wiki/`. Flag any claim that overstates, misrepresents, or can't be traced to its citation.
-2. **Check confidence levels** — review `persona-draft-report.md`; any "inferred" or "thinly-supported" section is a candidate gap.
+1. **Cross-check claims** — verify each claim in the draft against `.xavier/kb/wiki/`.
+2. **Check confidence levels** — review the draft report; "inferred" or "thinly-supported" sections are candidate gaps.
 3. **Classify each gap**:
-   - **Auto-resolvable**: gap could plausibly be closed by more documents or web research (e.g., missing timeframe, missing project context) → route to `load-documents`
-   - **User-dependent**: gap is inherently about intent/preference that only the user can clarify (e.g., "wants to grow the business" vs. "wants to sell it" — ambiguous without asking) → route to direct user prompt
+   - **Auto-resolvable** — closable with more documents → route to `load-documents`
+   - **User-dependent** — requires user intent/preference → route to direct prompt
 4. **Produce verdict**:
-   - **PASS** → hand off to `ask-persona`
-   - **FAIL** → produce `gap-report.md` listing each gap, its classification, and a specific proposed next step
+   - **PASS** → copy draft to `.xavier/persona/persona.md`, hand off to `ask-persona`
+   - **FAIL** → produce gap report in `.xavier/results/validation/`
 
 ## Output
 
-- `validation-verdict.md`: PASS or FAIL, with attempt number
-- If FAIL: `gap-report.md` — itemized gaps, classification (auto-resolvable / user-dependent), and proposed resolution per gap
+- `.xavier/results/validation/validation-verdict.md` — PASS or FAIL with attempt number
+- `.xavier/results/validation/gap-report.md` (if FAIL) — itemized gaps with classification and proposed resolution
 
 ## Handoff
 
-- On PASS: persona is marked validated; `execute-workflow` proceeds to `ask-persona`.
-- On FAIL, attempt < 3: `execute-workflow` routes auto-resolvable gaps back to `load-documents`, and user-dependent gaps to a direct prompt, then re-runs `build-persona`.
-- On FAIL, attempt = 3: halt. Report `gap-report.md` to the user directly. Do not allow `ask-persona` to run against this persona under any circumstance.
+- On PASS: persona is validated and written to `.xavier/persona/persona.md`; `execute-workflow` proceeds to `ask-persona`.
+- On FAIL, attempt < 3: route gaps back through the pipeline.
+- On FAIL, attempt = 3: halt. Report gaps to user. Never run `ask-persona`.
