@@ -51,6 +51,23 @@ execute-workflow
 - `ask-persona` only runs after a PASS verdict — never against a draft
 - User-dependent gaps are surfaced as explicit questions — never guessed
 
+## Project structure
+
+```
+.xavier/
+/raw              # drop source files here (PDF, DOCX, XLSX, TXT)
+/normalized       # converted markdown files + manifest.json
+/kb               # knowledge base (wiki/ + index/)
+/persona          # validated persona definition (final)
+/results/
+  ├── load/       # load-report.md
+  ├── kb/         # build-report.md
+  ├── .draft/
+  │   └── persona/ # persona-draft.md, persona-draft-report.md (temp)
+  ├── validation/ # validation-verdict.md, gap-report.md
+  └── run.log     # pipeline log
+```
+
 ## Requirements
 
 - Node.js >= 18
